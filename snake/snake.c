@@ -19,7 +19,7 @@
 #endif
 
 
-#define GRID_SIZE 16
+#define GRID_SIZE 20
 #define GRID_DIM 800
 
 enum {
@@ -148,6 +148,23 @@ void move_snake(){
 
      return ;
 }
+void reset_snake(){
+    Snake *track = head;
+    Snake *temp;
+
+    while(track!=NULL){
+        temp =track;
+        track= track->next;
+        free(temp);
+    }
+
+    init_snake();
+
+    increase_snake();
+    increase_snake();
+    increase_snake();
+    return ;
+}
 void render_snake(SDL_Renderer *renderer, int x, int y){
     SDL_SetRenderDrawColor(renderer, 0x00, 0xff, 0x00, 255);
     int seg_size = GRID_DIM / GRID_SIZE;
@@ -169,7 +186,11 @@ void render_snake(SDL_Renderer *renderer, int x, int y){
 }
 
 void render_grid(SDL_Renderer *renderer, int x, int y){
-    SDL_SetRenderDrawColor(renderer, 0x55, 0x55, 0x55, 255);
+    SDL_SetRenderDrawColor(renderer, 0x55, 0x55, 0xff, 255);
+
+
+#if 0
+
     int cell_size = GRID_DIM / GRID_SIZE;
 
     SDL_Rect cell;
@@ -183,20 +204,40 @@ void render_grid(SDL_Renderer *renderer, int x, int y){
             SDL_RenderDrawRect(renderer, &cell);
         }
     }
+#else
+    SDL_Rect outline;
+    outline.x = x;
+    outline.y = y;
+    outline.w = GRID_DIM;
+    outline.h = GRID_DIM;
+    SDL_RenderDrawRect(renderer, &outline);
+#endif
 
-
-
+    return;
 } 
  
 //genrate apples
 void gen_apple(){
+    bool in_snake;
+    do{
+        in_snake = false;
     Apple.x = rand() % GRID_SIZE;
     Apple.y = rand() % GRID_SIZE;
+
+    Snake *track = head;
+
+    while(track != NULL){
+        if(track -> x == Apple.x &&  track->y == Apple.y){
+
+        }
+        track = track->next;
+    }
+    }while(in_snake);
 }
 
 void render_apple(SDL_Renderer *renderer, int x, int y){
     int apple_size = GRID_DIM / GRID_SIZE;
-
+    SDL_SetRenderDrawColor(renderer, 0xff, 0x55, 0x00, 255);
     SDL_Rect app;
     app.w = apple_size;
     app.h = apple_size;
@@ -212,6 +253,24 @@ void detect_apple(){
     }
 }
 
+void detect_crash(){
+    if(head->x < 0 || head->x >= GRID_SIZE || head->y < 0 || head->y >= GRID_SIZE){
+        reset_snake();
+    }
+
+    Snake  *track = head;
+    if(track->next != NULL){
+        track = track->next;
+    }
+
+    while (track != NULL){
+        if(track->x == head->x &&  track->y == head->y){
+            reset_snake();
+        }
+        track = track->next;
+    }
+    return;
+}
 int main(){
     srand(time(0));
     init_snake();
@@ -282,6 +341,7 @@ int main(){
     // render loop start
     move_snake();
     detect_apple();
+    detect_crash();
 
     render_grid(renderer, grid_x,  grid_y);
     render_snake(renderer, grid_x, grid_y);
@@ -290,7 +350,7 @@ int main(){
     SDL_SetRenderDrawColor(renderer, 0x11, 0x11, 0x11, 255);
     SDL_RenderPresent(renderer);
 
-    SDL_Delay(80);
+    SDL_Delay(150);
     }
  
 
