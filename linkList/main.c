@@ -56,9 +56,21 @@ void freeList(struct Node* head) {
 }
 
 int main() {
-    struct Node* head = NULL;
+    int someVar = 10;
+    int* psomeVar = &someVar;
+    int** ppSomeVar = &psomeVar;
+    printf("%d \n", someVar);
+    printf("%p \n", &someVar);
+    printf("%d \n", *psomeVar);
+    printf("content of psomeVar %p \n", psomeVar);
+    printf("address of pSomevar : %p \n", &psomeVar);
 
-    appendNode(&head, 1);
+    printf("Content of ppSomeVar %p \n", ppSomeVar);
+
+    struct Node* head = NULL;
+    printf("%p \n",head);
+    printf("%p \n",&head);
+    appendNode(&head, 1000);
     appendNode(&head, 2);
     appendNode(&head, 3);
     appendNode(&head, 4);
