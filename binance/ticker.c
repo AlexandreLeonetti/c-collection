@@ -50,6 +50,7 @@ double getTickerPrice(const char *symbol) {
     curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
+    printf(url);
     res = curl_easy_perform(curl_handle);
 
     double price = 0.0;

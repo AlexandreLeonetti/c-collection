@@ -4,21 +4,17 @@
 #include <curl/curl.h>
 #include <openssl/hmac.h>
 #include <time.h>
-#include <cjson/cJSON.h>
+#include <ctype.h>
 
-#define API_KEY_ENV "BINANCE_API_KEY"
-#define API_SECRET_ENV "BINANCE_SECRET"
 #define MAX_LINE_LENGTH 256
 
-
-
-// Structure to hold response data
+// Structure for storing the memory data from curl
 struct MemoryStruct {
     char *memory;
     size_t size;
 };
 
-// Callback function to write response data into a struct
+// Callback function for writing received data
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     struct MemoryStruct *mem = (struct MemoryStruct *)userp;
@@ -47,11 +43,11 @@ void hmac_sha256(const char *key, const char *data, unsigned char *result, unsig
 }
 
 // Generate query string with HMAC signature
-void generateQueryString(char *queryString, const char *symbol, const char *quantity, const char *apiSecret) {
+void generateQueryString(char *queryString, const char *symbol, double quantity, const char *apiSecret) {
     long timestamp = time(NULL) * 1000;
     printf("Timestamp: %ld\n", timestamp); // Debug
 
-    sprintf(queryString, "symbol=%s&isIsolated=TRUE&side=BUY&type=MARKET&quantity=%s&newOrderRespType=FULL&sideEffectType=AUTO_BORROW_REPAY&timestamp=%ld",
+    sprintf(queryString, "symbol=%s&isIsolated=TRUE&side=BUY&type=MARKET&quantity=%.8f&newOrderRespType=FULL&sideEffectType=AUTO_BORROW_REPAY&timestamp=%ld",
             symbol, quantity, timestamp);
 
     printf("Query string before signature: %s\n", queryString); // Debug
@@ -74,9 +70,8 @@ void generateQueryString(char *queryString, const char *symbol, const char *quan
     printf("Query string after signature: %s\n", queryString); // Debug
 }
 
-// Function to perform isolated buy
-void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKey, const char *apiSecret) {
-    printf("im in buy");
+// Perform isolated buy on Binance
+void isolatedBuyBor(const char *symbol, double quantity, const char *apiKey, const char *apiSecret) {
     CURL *curl;
     CURLcode res;
     struct MemoryStruct chunk;
@@ -85,30 +80,20 @@ void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKe
 
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
-    if(curl) {
 
+    if(curl) {
         char queryString[1024];
         generateQueryString(queryString, symbol, quantity, apiSecret);
-        /**/
 
         char url[1024] = "https://api.binance.com/sapi/v1/margin/order?";
+
         strcat(url, queryString);
-        printf("url \n");
-        printf("%s\n",url);
+
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
         char apiHeader[128];
         sprintf(apiHeader, "X-MBX-APIKEY: %s", apiKey);
         headers = curl_slist_append(headers, apiHeader);
-
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, queryString);
-        curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-/*
 
         if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
             fprintf(stderr, "curl_easy_setopt URL failed\n");
@@ -126,27 +111,32 @@ void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKe
             fprintf(stderr, "curl_easy_setopt HTTPHEADER failed\n");
             return;
         }
-        if (curl_easy_setopt(curl, CURLOPT_POSTFIELDS, queryString) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt POSTFIELDS failed\n");
+        // Remove the POST request, use GET instead
+        // if (curl_easy_setopt(curl, CURLOPT_POSTFIELDS, queryString) != CURLE_OK) {
+        //     fprintf(stderr, "curl_easy_setopt POSTFIELDS failed\n");
+        //     return;
+        // }
+        // if (curl_easy_setopt(curl, CURLOPT_POST, 1L) != CURLE_OK) {
+        //     fprintf(stderr, "curl_easy_setopt POST failed\n");
+        //     return;
+        // }
+        
+        // Set a timeout
+        if (curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L) != CURLE_OK) {
+            fprintf(stderr, "curl_easy_setopt TIMEOUT failed\n");
             return;
         }
-        if (curl_easy_setopt(curl, CURLOPT_POST, 1L) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt POST failed\n");
-            return;
-        }
-
+        
         // Enable verbose mode
-        /*if (curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L) != CURLE_OK) {
+        if (curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L) != CURLE_OK) {
             fprintf(stderr, "curl_easy_setopt VERBOSE failed\n");
             return;
-        }*/
+        }
 
+        printf("Performing request to URL: %s\n", url);
 
-        // Enable verbose mode
-        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-        
         res = curl_easy_perform(curl);
-        
+
         if(res != CURLE_OK) {
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
         } else {
@@ -156,7 +146,6 @@ void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKe
         curl_easy_cleanup(curl);
         curl_slist_free_all(headers);
         free(chunk.memory);
-        
     }
 
     curl_global_cleanup();
@@ -180,7 +169,6 @@ void trim_whitespace(char *str) {
     *(end + 1) = '\0';
 }
 
-
 // Load environment variables from a file
 void load_env_file(const char *filename, char *apiKey, char *apiSecret) {
     FILE *file = fopen(filename, "r");
@@ -203,19 +191,19 @@ void load_env_file(const char *filename, char *apiKey, char *apiSecret) {
             trim_whitespace(key);
             trim_whitespace(value);
 
-            //printf("Key: '%s', Value: '%s'\n", key, value); // Debug output
+            printf("Key: '%s', Value: '%s'\n", key, value); // Debug output
 
             if (strcmp(key, "BINANCE_API_KEY") == 0) {
                 strcpy(apiKey, value);
-                //printf("API Key loaded: %s\n", apiKey); // Debug output
+                printf("API Key loaded: %s\n", apiKey); // Debug output
             } else if (strcmp(key, "BINANCE_SECRET") == 0) {
                 strcpy(apiSecret, value);
-                //printf("API Secret loaded: %s\n", apiSecret); // Debug output
+                printf("API Secret loaded: %s\n", apiSecret); // Debug output
             }
         }
     }
+
     fclose(file);
-    return;
 }
 
 int main() {
@@ -226,15 +214,18 @@ int main() {
     load_env_file("../.env", apiKey, apiSecret);
 
     const char *symbol = "BTCUSDT";
-    //double quantity = 0.001;
-    const char *quantity = "0.001";
-    
+    double quantity = 0.001;
+
+    // Debug statements to verify environment variables
+    printf("Final API Key: %s\n", apiKey);
+    printf("Final API Secret: %s\n", apiSecret);
+
     if (strlen(apiKey) == 0 || strlen(apiSecret) == 0) {
-        fprintf(stderr, "API key and secret must be set in environment variables\n");
-        return EXIT_FAILURE;
+        fprintf(stderr, "API Key or Secret not set\n");
+        return 1;
     }
+
     isolatedBuyBor(symbol, quantity, apiKey, apiSecret);
 
     return 0;
 }
-
