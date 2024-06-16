@@ -50,10 +50,10 @@ void hmac_sha256(const char *key, const char *data, unsigned char *result, unsig
 void generateQueryString(char *queryString, const char *symbol, const char *quantity, const char *apiSecret) {
     long timestamp = time(NULL) * 1000;
     printf("Timestamp: %ld\n", timestamp); // Debug
+    printf("queryString : %s",queryString);
+    sprintf(queryString, "symbol=BTCUSDT&side=BUY&type=LIMIT&timeInForce=GTC&quantity=0.0005&price=70000&recvWindow=50000&timestamp=%ld", timestamp);// symbol, quantity, timestamp);
 
-    sprintf(queryString, "symbol=BTCUSDT&isIsolated=TRUE&side=BUY&type=MARKET&quantity=0.001&newOrderRespType=FULL&sideEffectType=AUTO_BORROW_REPAY&timestamp=%ld", timestamp);// symbol, quantity, timestamp);
-
-    printf("Query string before signature: %s\n", queryString); // Debug
+    //printf("Query string before signature: %s\n", queryString); // Debug
 
     unsigned char hmac_result[EVP_MAX_MD_SIZE];
     unsigned int len = EVP_MAX_MD_SIZE;
@@ -65,12 +65,12 @@ void generateQueryString(char *queryString, const char *symbol, const char *quan
     }
     signature[64] = '\0'; // Null-terminate the signature
 
-    printf("Generated signature: %s\n", signature); // Debug
+   // printf("Generated signature: %s\n", signature); // Debug
 
     strcat(queryString, "&signature=");
     strcat(queryString, signature);
 
-    printf("Query string after signature: %s\n", queryString); // Debug
+    printf("Query string after signature:\n %s\n\n", queryString); // Debug
 }
 
 // Function to perform isolated buy
@@ -90,10 +90,10 @@ void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKe
         generateQueryString(queryString, symbol, quantity, apiSecret);
         /**/
 
-        char url[1024] = "https://api.binance.com/sapi/v1/margin/order?";
-        strcat(url, queryString);
+        char url[1024] = "https://api.binance.com/api/v3/order?";
+        //strcat(url, queryString);
         printf("url \n");
-        printf("%s\n",url);
+        printf("%s\n\n",url);
         struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
         char apiHeader[128];
@@ -106,56 +106,19 @@ void isolatedBuyBor(const char *symbol, const char  *quantity, const char *apiKe
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, queryString);
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-/*
-
-        if (curl_easy_setopt(curl, CURLOPT_URL, url) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt URL failed\n");
-            return;
-        }
-        if (curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt WRITEFUNCTION failed\n");
-            return;
-        }
-        if (curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt WRITEDATA failed\n");
-            return;
-        }
-        if (curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt HTTPHEADER failed\n");
-            return;
-        }
-        if (curl_easy_setopt(curl, CURLOPT_POSTFIELDS, queryString) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt POSTFIELDS failed\n");
-            return;
-        }
-        if (curl_easy_setopt(curl, CURLOPT_POST, 1L) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt POST failed\n");
-            return;
-        }
-
-        // Enable verbose mode
-        /*if (curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L) != CURLE_OK) {
-            fprintf(stderr, "curl_easy_setopt VERBOSE failed\n");
-            return;
-        }*/
-
-
-        // Enable verbose mode
         //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-        
+
         res = curl_easy_perform(curl);
         
         if(res != CURLE_OK) {
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
         } else {
-            printf("%s\n", chunk.memory);
+            printf("\n reponse : \n\n %s\n", chunk.memory);
         }
 
         curl_easy_cleanup(curl);
         curl_slist_free_all(headers);
         free(chunk.memory);
-        
     }
 
     curl_global_cleanup();
