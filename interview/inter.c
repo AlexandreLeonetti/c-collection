@@ -1,3 +1,15 @@
+/*
+Instructions : 
+The next function should return the smallest integer which is superior
+to whose digits are all different from all of n's digits.
+For example next (654321)
+should return 700000.
+If no such integer exists then the function must return -1.
+Write the body of the next (n) function.
+Note: n is a strictly positive integer lower than 2^31.
+and
+in c :
+*/
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
