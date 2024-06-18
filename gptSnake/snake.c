@@ -5,7 +5,8 @@
 //2:30
 #include "snake.h"
 #include "glyphs.c"
-
+#include "astar.c"
+#include "astar.h"
 #if 0
 //FULLSCREEN
 #define WINDOW_X 0
@@ -24,8 +25,7 @@
 #define GRID_SIZE 28
 #define GRID_DIM 600
 
-#define DELAY 0
-
+#define DELAY 2
 
 enum {
     SNAKE_UP,
@@ -579,28 +579,69 @@ int state(int try)
 
     return reward;
 }
+//ai1
+void ai() {
+    PriorityQueue open_set;
+    init_priority_queue(&open_set, 64);
+    
+    Node start = {{head->x, head->y}, 0, heuristic((Point){head->x, head->y}, (Point){Apple.x, Apple.y}), NULL};
+    pq_push(&open_set, start);
 
-void ai()
-{
-    int try_f = state(TRY_FORWARD);
-    int try_l = state(TRY_LEFT);
-    int try_r = state(TRY_RIGHT);
+    Point closed_set[GRID_SIZE * GRID_SIZE];
+    int closed_size = 0;
 
-    if(try_f >= try_l && try_f >= try_r) {
-        //CONTINUE FOWARD
-    }
-    else {
-        if(try_l > try_r) {
-            turn_left();
+    Node* path = NULL;
+    
+    while (!pq_is_empty(&open_set)) {
+        Node current = pq_pop(&open_set);
+        
+        if (current.pos.x == Apple.x && current.pos.y == Apple.y) {
+            path = &current;
+            break;
         }
-        else {
-            turn_right();
-        }
 
+        closed_set[closed_size++] = current.pos;
+
+        Point neighbors[4] = {
+            {current.pos.x, current.pos.y - 1},
+            {current.pos.x, current.pos.y + 1},
+            {current.pos.x - 1, current.pos.y},
+            {current.pos.x + 1, current.pos.y}
+        };
+
+        for (int i = 0; i < 4; i++) {
+            Point neighbor_pos = neighbors[i];
+            if (!is_valid_point(neighbor_pos.x, neighbor_pos.y) ||
+                is_point_in_list(closed_set, closed_size, neighbor_pos)) {
+                continue;
+            }
+
+            int g_score = current.g + 1;
+            int h_score = heuristic(neighbor_pos, (Point){Apple.x, Apple.y});
+            Node neighbor = {neighbor_pos, g_score, h_score, &current};
+
+            pq_push(&open_set, neighbor);
+        }
     }
 
+    if (path) {
+        Node* step = path;
+        while (step->parent && step->parent->parent) {
+            step = step->parent;
+        }
 
-    return;
+        if (step->pos.y < head->y) {
+            head->dir = SNAKE_UP;
+        } else if (step->pos.y > head->y) {
+            head->dir = SNAKE_DOWN;
+        } else if (step->pos.x < head->x) {
+            head->dir = SNAKE_LEFT;
+        } else if (step->pos.x > head->x) {
+            head->dir = SNAKE_RIGHT;
+        }
+    }
+
+    free_priority_queue(&open_set);
 }
 
 void render_score(SDL_Renderer *renderer, int x, int y)
