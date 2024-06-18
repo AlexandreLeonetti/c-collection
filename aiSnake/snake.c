@@ -21,10 +21,10 @@
 #define WINDOW_Y -10//-20
 #endif
 
-#define GRID_SIZE 28
+#define GRID_SIZE 64 
 #define GRID_DIM 600
 
-#define DELAY 0
+#define DELAY 1
 
 
 enum {

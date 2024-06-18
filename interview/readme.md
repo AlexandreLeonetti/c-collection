@@ -460,4 +460,244 @@ return 0;
 answer 0 2;
 
 >question 32/35;//19:30
+printchar displays exactly one ASCII character from "A" to "Z" (inclusive) 
+on multiple rows and columns using a graphical representation known as "ASCII Art".
+
+We would like to do the reverse operation: finding a character from its graphical representation.
+Implement the function scanChar (string str) so that it returns the character
+associated with the given graphical representation (i.e. str = printChar (c) ).
+
+
+If str does not match the graphical representation of any character from "A" to "Z", then
+scanChar must return the character ?.
+
+Lowercase letters do not have to be processed.
+
+Example
+The instruction printChar ('A'), returns this string (which contains newlines):
+
+ #
+# #
+###
+# #
+# #
+
+The instruction printChar ('B') returns another string, which looks like a "B" in ASCIl art, and so on.
+
+The function scanChar is supposed to do the reverse operation:
+
+string asciiArtA = "\
+
+\n
+##n
+
+\nN
+# \n\
+# \n";
+char scaResult = Answer:: scanChar(asciiArtA) =
+cout «< scanResult << endl; // This line should output 'A'.
+Hint: you can call the function printChar inside your function scanchar, as many times as you want.
+
+
+
+answer :
+```c++
+#include <iostream>
+#include <string>
+#include <unordered_map>
+
+std::string printChar(char c) {
+    // This function generates the ASCII art for the character c.
+    // For simplicity, we assume the function works correctly.
+    // Here are a couple of example characters.
+    
+    std::unordered_map<char, std::string> charToArt = {
+        {'A', "#\n#\n##\n# #\n# #\n# #\n"},
+        {'B', "##\n# #\n##\n# #\n# #\n##\n"},
+        // Add the remaining characters from 'C' to 'Z'
+    };
+
+    return charToArt[c];
+}
+
+class Answer {
+public:
+    /**
+     * @return the character associated with the given ASCII art representation
+     */
+    static char scanChar(const std::string& str) {
+        // Compare the given string with the ASCII art of all characters from 'A' to 'Z'
+        for (char c = 'A'; c <= 'Z'; ++c) {
+            if (str == printChar(c)) {
+                return c;
+            }
+        }
+        // If no match is found, return character '2'
+        return '2';
+    }
+};
+
+int main() {
+    std::string asciiArtA = "#\n#\n##\n# #\n# #\n# #\n";
+    char scanResult = Answer::scanChar(asciiArtA);
+    std::cout << scanResult << std::endl;  // This line should output 'A'.
+    
+    return 0;
+}
+```
+
+answer in c :
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_CHAR 128
+
+typedef struct {
+    char character;
+    char *art;
+} CharArt;
+
+const CharArt charToArt[] = {
+    {'A', "#\n#\n##\n# #\n# #\n# #\n"},
+    {'B', "##\n# #\n##\n# #\n# #\n##\n"},
+    // Add the remaining characters from 'C' to 'Z'
+};
+
+#define CHAR_ART_SIZE (sizeof(charToArt) / sizeof(CharArt))
+
+char* printChar(char c) {
+    for (int i = 0; i < CHAR_ART_SIZE; ++i) {
+        if (charToArt[i].character == c) {
+            return charToArt[i].art;
+        }
+    }
+    return NULL;
+}
+
+char scanChar(const char* str) {
+    for (int i = 0; i < CHAR_ART_SIZE; ++i) {
+        if (strcmp(charToArt[i].art, str) == 0) {
+            return charToArt[i].character;
+        }
+    }
+    return '2';
+}
+
+int main() {
+    char asciiArtA[] = "#\n#\n##\n# #\n# #\n# #\n";
+    char scanResult = scanChar(asciiArtA);
+    printf("%c\n", scanResult);  // This line should output 'A'.
+
+    return 0;
+}
+
+```
+
+>question 33/35
+Instructions : The "next" function should return the smallest integer which is superior to n and
+whose digits are all different from all of n's digits.
+
+For example next (654321)
+should return 700000.
+If no such integer exists then the function must return -1.
+Write the body of the next (n) function.
+Note: n is a strictly positive integer lower than 2^31.
+
+```c
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+// Determines if a given number contains any of the digits stored in the 'digits_used' array
+bool contains_any_used_digits(int num, bool digits_used[10]) {
+    while (num > 0) {
+        if (digits_used[num % 10]) {
+            return true;
+        }
+        num /= 10;
+    }
+    return false;
+}
+
+// Extracts all digits from 'n' and marks them in the 'digits_used' array
+void mark_used_digits(int n, bool digits_used[10]) {
+    memset(digits_used, false, 10 * sizeof(bool));
+    while (n > 0) {
+        digits_used[n % 10] = true;
+        n /= 10;
+    }
+}
+
+// Finds the smallest integer greater than 'n' with no digits in common with 'n'
+int next(int n) {
+    bool digits_used[10];
+    mark_used_digits(n, digits_used);
+
+    for (int test = n + 1; ; test++) {
+        if (!contains_any_used_digits(test, digits_used)) {
+            return test;
+        }
+        
+        // If we are moving to a new magnitude (from 999 to 1000, etc.), we can jump over invalid ranges
+        int digits = 0, tmp = test;
+        while (tmp > 0) {
+            digits++;
+            tmp /= 10;
+        }
+        int pow10 = 1;
+        for (int i = 0; i < digits - 1; i++) pow10 *= 10;
+
+        // Find next clean decadic step that isn't affected by 'digits_used'
+        if (test / pow10 % 10 == 9) {
+            int nextStep = (test / pow10 + 1) * pow10;
+            if (!contains_any_used_digits(nextStep, digits_used)) {
+                test = nextStep - 1;  // decrement here because it will increment in the loop
+            }
+        }
+    }
+    return -1;  // Theoretically unreachable because INT_MAX is the highest it would go.
+}
+
+int main() {
+    int numbers[] = {2, 901, 958, 3025, 654321, 1987, 123456789, 999999999};
+    int num_tests = sizeof(numbers) / sizeof(numbers[0]);
+
+    for (int i = 0; i < num_tests; i++) {
+        int n = numbers[i];
+        printf("Next number after %d is %d\n", n, next(n));
+    }
+
+    return 0;
+}
+
+```
+
+
+
+>question 34/35
+c++ only
+
+>question 35/35
+what is displayed by this code ?
+```c
+int main(){
+    int a = 1;
+    int *p = &a;
+    *p++;
+
+    printf("%d",a);
+    return 0;
+
+}
+
+```
+
+answer 1;
+
+
+
+
+
 

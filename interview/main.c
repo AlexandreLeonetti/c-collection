@@ -1,16 +1,12 @@
 #include <stdio.h>
 
-
 int main(){
-int s = 0;
-    switch(s){
-        case 1 : printf("1");
-        case 0 : printf("0\n");
-        case 2 : printf("2\n");
-    }
+    int a = 1;
+    int *p = &a;
 
-/* fall through behavior 0, 2*/
-
-return 0;
+    *p++;
+    *p++;
+    printf("%d",a);
+    return 0;
 
 }
